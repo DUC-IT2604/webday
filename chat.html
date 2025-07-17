@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trang Web Trò Chuyện & Bình Luận</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Thay đổi để nội dung không bị đẩy lên quá cao */
+        min-height: 100vh;
+        margin: 20px 0; /* Thêm margin trên dưới để tạo khoảng trống */
+      }
+
+      .container {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 800px;
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      /* Chat Window */
+      .chat-window {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 30px;
+        background-color: #f9f9f9;
+      }
+
+      .messages {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #fff;
+        border-radius: 4px;
+      }
+
+      .message-item {
+        margin-bottom: 8px;
+        padding: 6px 10px;
+        border-radius: 15px;
+        max-width: 80%;
+        word-wrap: break-word;
+      }
+
+      .message-item.sent {
+        background-color: #dcf8c6;
+        align-self: flex-end; /* Chỉ định là tin nhắn của người gửi */
+        margin-left: auto; /* Đẩy tin nhắn sang phải */
+      }
+
+      .message-item.received {
+        background-color: #e0e0e0;
+        align-self: flex-start; /* Chỉ định là tin nhắn của người nhận */
+      }
+
+      #messageInput {
+        width: calc(100% - 90px);
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-right: 8px;
+      }
+
+      #sendMessageBtn {
+        padding: 10px 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #sendMessageBtn:hover {
+        background-color: #218838;
+      }
+
+      /* Comment Section */
+      .comment-section {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        background-color: #f9f9f9;
+      }
+
+      .comment-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .comment-form input[type="text"],
+      .comment-form textarea {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .comment-form textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .rating {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .star {
+        font-size: 24px;
+        cursor: pointer;
+        color: #ccc;
+      }
+
+      .star.selected {
+        color: #ffc107; /* Màu vàng khi được chọn */
+      }
+
+      #postCommentBtn {
+        padding: 10px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #postCommentBtn:hover {
+        background-color: #0056b3;
+      }
+
+      .comments {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+      }
+
+      .comment-item {
+        background-color: #fff;
+        border: 1px solid #eee;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+
+      .comment-item strong {
+        color: #555;
+      }
+
+      .comment-item .comment-rating {
+        color: #ffc107;
+        margin-left: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Trò Chuyện Của Bạn</h1>
+
+      <div class="chat-window">
+        <div id="messages" class="messages"></div>
+        <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." />
+        <button id="sendMessageBtn">Gửi</button>
+      </div>
+
+      <div class="comment-section">
+        <h2>Đánh Giá & Bình Luận</h2>
+        <div class="comment-form">
+          <input type="text" id="usernameInput" placeholder="Tên của bạn..." />
+          <textarea
+            id="commentTextInput"
+            placeholder="Viết bình luận của bạn..."
+          ></textarea>
+          <div class="rating">
+            <span>Đánh giá: </span>
+            <span class="star" data-value="1">⭐</span>
+            <span class="star" data-value="2">⭐</span>
+            <span class="star" data-value="3">⭐</span>
+            <span class="star" data-value="4">⭐</span>
+            <span class="star" data-value="5">⭐</span>
+          </div>
+          <button id="postCommentBtn">Đăng Bình Luận</button>
+        </div>
+        <div id="comments" class="comments"></div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageBtn = document.getElementById("sendMessageBtn");
+        const messagesDiv = document.getElementById("messages");
+
+        const usernameInput = document.getElementById("usernameInput");
+        const commentTextInput = document.getElementById("commentTextInput");
+        const postCommentBtn = document.getElementById("postCommentBtn");
+        const commentsDiv = document.getElementById("comments");
+        const stars = document.querySelectorAll(".rating .star");
+
+        let currentRating = 0; // Biến lưu trữ đánh giá hiện tại
+
+        // --- Chức năng Trò chuyện ---
+
+        // Tải tin nhắn đã lưu (nếu có)
+        function loadMessages() {
+          const storedMessages =
+            JSON.parse(localStorage.getItem("chatMessages")) || [];
+          storedMessages.forEach((msg) => displayMessage(msg.text, msg.type));
+          messagesDiv.scrollTop = messagesDiv.scrollHeight; // Cuộn xuống cuối
+        }
+
+        // Hiển thị tin nhắn lên khung chat
+        function displayMessage(message, type = "sent") {
+          const messageItem = document.createElement("div");
+          messageItem.classList.add("message-item", type);
+          messageItem.textContent = message;
+          messagesDiv.appendChild(messageItem);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight; // Cuộn xuống tin nhắn mới nhất
+        }
+
+        // Gửi tin nhắn
+        sendMessageBtn.addEventListener("click", () => {
+          const messageText = messageInput.value.trim();
+          if (messageText) {
+            displayMessage(messageText, "sent");
+            saveMessage(messageText, "sent");
+            messageInput.value = "";
+
+            // (Tùy chọn) Mô phỏng tin nhắn trả lời từ "người khác"
+            setTimeout(() => {
+              const reply = "Chào bạn! Mình nhận được tin nhắn của bạn rồi.";
+              displayMessage(reply, "received");
+              saveMessage(reply, "received");
+            }, 1000);
+          }
+        });
+
+        // Lưu tin nhắn vào Local Storage
+        function saveMessage(message, type) {
+          const storedMessages =
+            JSON.parse(localStorage.getItem("chatMessages")) || [];
+          storedMessages.push({ text: message, type: type });
+          localStorage.setItem("chatMessages", JSON.stringify(storedMessages));
+        }
+
+        // --- Chức năng Bình luận & Đánh giá ---
+
+        // Xử lý việc chọn sao đánh giá
+        stars.forEach((star) => {
+          star.addEventListener("click", () => {
+            currentRating = parseInt(star.dataset.value);
+            stars.forEach((s, index) => {
+              if (index < currentRating) {
+                s.classList.add("selected");
+              } else {
+                s.classList.remove("selected");
+              }
+            });
+          });
+        });
+
+        // Tải bình luận đã lưu (nếu có)
+        function loadComments() {
+          const storedComments =
+            JSON.parse(localStorage.getItem("websiteComments")) || [];
+          storedComments.forEach((comment) =>
+            displayComment(comment.username, comment.text, comment.rating)
+          );
+        }
+
+        // Hiển thị bình luận
+        function displayComment(username, text, rating) {
+          const commentItem = document.createElement("div");
+          commentItem.classList.add("comment-item");
+          commentItem.innerHTML = `
+            <strong>${username}</strong> 
+            <span class="comment-rating">${"⭐".repeat(rating)}</span>
+            <p>${text}</p>
+        `;
+          commentsDiv.prepend(commentItem); // Thêm bình luận mới nhất lên đầu
+        }
+
+        // Đăng bình luận
+        postCommentBtn.addEventListener("click", () => {
+          const username = usernameInput.value.trim();
+          const commentText = commentTextInput.value.trim();
+
+          if (username && commentText && currentRating > 0) {
+            displayComment(username, commentText, currentRating);
+            saveComment(username, commentText, currentRating);
+            // Reset form
+            usernameInput.value = "";
+            commentTextInput.value = "";
+            currentRating = 0;
+            stars.forEach((s) => s.classList.remove("selected"));
+          } else {
+            alert("Vui lòng điền đầy đủ tên, bình luận và đánh giá sao!");
+          }
+        });
+
+        // Lưu bình luận vào Local Storage
+        function saveComment(username, text, rating) {
+          const storedComments =
+            JSON.parse(localStorage.getItem("websiteComments")) || [];
+          storedComments.unshift({ username, text, rating }); // Thêm vào đầu mảng
+          localStorage.setItem(
+            "websiteComments",
+            JSON.stringify(storedComments)
+          );
+        }
+
+        // Khởi tạo: tải dữ liệu khi trang tải xong
+        loadMessages();
+        loadComments();
+      });
+    </script>
+  </body>
+</html>
